@@ -11,13 +11,13 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  first_name    String?
-  email         String    @unique
-  gender        String?
-  city          String?
-  password      String
-  sessions      Session[]
+  id         String    @id @default(uuid())
+  first_name String?
+  email      String    @unique
+  gender     String?
+  city       String?
+  password   String
+  sessions   Session[]
 }
 
 model Session {
