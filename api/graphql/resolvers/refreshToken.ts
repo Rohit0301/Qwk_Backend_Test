@@ -3,6 +3,7 @@ import { FieldResolver } from "nexus";
 import { createAccessToken, verifyRefreshToken } from "../../utils/token";
 import { Context } from "../../types/Context";
 import { setCookies } from "./common";
+import { TOKEN_REFRESH_FAILED } from "../../constants/auth";
 
 export const refreshToken: FieldResolver<
     "Query",
@@ -21,7 +22,7 @@ export const refreshToken: FieldResolver<
         }
     } catch (error) {
         const errMsg = (error as ValidationError).message ||
-            "Token refresh attempt failed!";
+        TOKEN_REFRESH_FAILED;
         return {
             error: errMsg,
         };

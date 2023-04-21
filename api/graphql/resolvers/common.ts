@@ -1,13 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import { IRequest } from "../../types/Context";
 import nookies from "nookies";
+import { createAccessToken, createRefreshToken } from "../../utils/token";
+import { INVALID_SESSION, SESSION_ERROR } from "../../constants/auth";
 
 interface ITokens{
     accessToken: String;
     refreshToken: String
 }
 
-export const createSession = async (user: { id: string }, db: PrismaClient) => {
+export const createUserSession = async (user: { id: string }, db: PrismaClient) => {
     const session = await db.session.create({
         data: {
             user_id: user.id
@@ -25,7 +27,7 @@ export const removeUserSession = async ({ session_id, db }: { session_id: string
         })
     }
     catch (err) {
-        throw new Error("Invalid Session");
+        throw new Error(INVALID_SESSION);
     }
 }
 
@@ -42,11 +44,11 @@ export const checkUserSession = async ({ session_id, user_id, db }: {
             }
         })
         if (userSession === null) {
-            throw new Error("Invalid session!");
+            throw new Error(INVALID_SESSION);
         }
     }
     catch (err) {
-        throw new Error("Session error!")
+        throw new Error(SESSION_ERROR)
     }
 }
 
@@ -62,4 +64,17 @@ export const setCookies = ({ tokens, res }: { tokens: ITokens; res: Response }) 
         domain: process.env.SERVER_DOMAIN || undefined,
         sameSite: true,
     });
+}
+
+export const generateTokens = async(payload: { user_id: string, session_id: string }) => {
+    const refreshToken = await createRefreshToken(
+        payload, null);
+      const accessToken = await createAccessToken(
+        payload, null
+      );
+      const tokens = {
+        refreshToken,
+        accessToken
+      }
+      return tokens
 }

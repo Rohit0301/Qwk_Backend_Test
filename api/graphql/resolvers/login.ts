@@ -2,9 +2,9 @@ import { PrismaClient } from "@prisma/client";
 import { compare } from "bcrypt";
 import { FieldResolver } from "nexus";
 import { ValidationError } from "apollo-server";
-import { createAccessToken, createRefreshToken } from "../../utils/token";
-import { createSession, setCookies } from "./common";
+import { createUserSession, generateTokens, setCookies } from "./common";
 import { Context } from "../../types/Context";
+import { INCORRECT_CREDENTIALS, LOGIN_FAILED } from "../../constants/auth";
 
 export const login: FieldResolver<
     "Mutation",
@@ -12,28 +12,18 @@ export const login: FieldResolver<
 > = async (_, { credentials }: any, { db, res }: Context) => {
     try {
         const existingUser = await getExistingUser(credentials, db);
-        const session = await createSession(existingUser, db);
-        const accessToken = await createAccessToken(
-            { user_id: existingUser.id, session_id: session.id },
-            null
-        );
-        const refreshToken = await createRefreshToken(
-            { user_id: existingUser.id, session_id: session.id },
-            null
-        );
-        const tokens = {
-            accessToken,
-            refreshToken
-        }
+        const session = await createUserSession(existingUser, db);
+        const tokens  = await generateTokens( { user_id: existingUser.id, session_id: session.id })
         setCookies({ tokens: tokens, res })
+        console.log("Login successfull: ", tokens); 
         return {    
             tokens: tokens,
             user_id: existingUser.id,
         };
-
     } catch (error) {
         const errMsg = (error as ValidationError).message ||
-            "Login attempt failed!";
+            LOGIN_FAILED;
+        console.log("Login error: ", errMsg)
         return {
             error: errMsg,
         };
@@ -62,7 +52,7 @@ const getExistingUser = async (
     );
 
     if (!existingUser || !passwordsMatch) {
-        throw new Error("Incorrect username or password!");
+        throw new Error(INCORRECT_CREDENTIALS);
     }
 
     return existingUser;

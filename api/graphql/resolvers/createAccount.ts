@@ -1,11 +1,11 @@
 import { ValidationError } from "apollo-server";
 import { hash } from "bcrypt";
 import { FieldResolver } from "nexus";
-import { createAccessToken, createRefreshToken } from "../../utils/token";
 import { registrationValidation } from "../../utils/registrationValidation";
-import { createSession, setCookies } from "./common";
+import { createUserSession, generateTokens, setCookies } from "./common";
 import { Context } from "../../types/Context";
 import { PrismaClient } from "@prisma/client";
+import { EMAIL_ALREADY_PRESENT, SIGNUP_FAILED } from "../../constants/auth";
 export const createAccount: FieldResolver<
   "Mutation",
   "createAccount"
@@ -14,22 +14,13 @@ export const createAccount: FieldResolver<
     await registrationValidation.validate(credentials);
     await checkUserExists({ credentials, db })
     const hashedPassword = await hash(credentials.password, 7);
-
     const user = {
       email: credentials.email,
       password: hashedPassword,
     };
     const newUser = await createNewUser({ user, db })
-    const session = await createSession(newUser, db);
-    const refreshToken = await createRefreshToken(
-      { user_id: newUser.id, session_id: session.id }, null);
-    const accessToken = await createAccessToken(
-      { user_id: newUser.id, session_id: session.id }, null
-    );
-    const tokens = {
-      refreshToken,
-      accessToken
-    }
+    const session = await createUserSession(newUser, db);
+    const tokens  = await generateTokens( { user_id: newUser.id, session_id: session.id })
     setCookies({ tokens: tokens, res })
     return {
       tokens: tokens,
@@ -37,7 +28,7 @@ export const createAccount: FieldResolver<
     };
   } catch (err) {
     const errMsg =
-      (err as ValidationError).message || "Invalid Input";
+      (err as ValidationError).message || SIGNUP_FAILED;
     return {
       error: errMsg,
     };
@@ -51,7 +42,7 @@ const checkUserExists = async ({ db, credentials }: { db: PrismaClient, credenti
     },
   });
   if (existingUser !== null) {
-    throw new Error("Email already taken!");
+    throw new Error(EMAIL_ALREADY_PRESENT);
   }
 
   return existingUser;

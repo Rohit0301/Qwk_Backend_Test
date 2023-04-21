@@ -4,6 +4,7 @@ import { FieldResolver } from "nexus";
 import { Context } from "../../types/Context";
 import { checkUserSession, getHeadersToken } from "./common";
 import { verifyAccessToken } from "../../utils/token";
+import { INVALID_EMAIL_OR_TOKEN, SOMETHING_WENT_WRONG, USER_EMAIL_NOT_FOUND, USER_UPDATE_SUCCESSFULL } from "../../constants/auth";
 
 export const updateUser: FieldResolver<
     "Mutation",
@@ -15,8 +16,9 @@ export const updateUser: FieldResolver<
         await checkUserSession({ session_id, db, user_id})
         await checkUserExist(userData, db, user_id);
         const updatedUser = await updateUserData({userData, db})
+        console.log("User updated successfully: ", updateUser);
         return {
-            message: "User updated successfully",
+            message: USER_UPDATE_SUCCESSFULL,
             user: {
                 first_name: updatedUser.first_name,
                 email: updatedUser.email,
@@ -26,7 +28,8 @@ export const updateUser: FieldResolver<
         }
     } catch (error) {
         const errMsg = (error as ValidationError).message ||
-            "Something went wrong";
+        SOMETHING_WENT_WRONG
+        console.log("User updation error: ", errMsg);
         return {
             error: errMsg,
         };
@@ -49,10 +52,10 @@ const checkUserExist = async (
     });
    
     if (!existingUser) {
-        throw new Error("User not found with this email id")
+        throw new Error(USER_EMAIL_NOT_FOUND)
     }
     if(existingUser.id!==user_id){
-        throw new Error("Invalid token or email")
+        throw new Error(INVALID_EMAIL_OR_TOKEN)
     }
     return existingUser;
 };
