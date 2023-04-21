@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import * as dotenv from 'dotenv'
-import { ACCESS_TOKEN_EXPIRED, INVALID_ACCESS_TOKEN, INVALID_REFRESH_TOKEN, REFRESH_TOKEN_EXPIRED } from "../constants/auth";
+import { INVALID_ACCESS_TOKEN, INVALID_REFRESH_TOKEN } from "../constants/auth";
+import { ValidationError } from "apollo-server";
 dotenv.config()
 
 interface IVerifyPayload {
@@ -54,16 +55,20 @@ export const verifyAccessToken = (token: string) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_TOKEN_SECRET as string) as IVerifyPayload;
     return decoded
-  } catch (err) {
-    throw new Error(INVALID_ACCESS_TOKEN);
+  } catch (error) {
+    const errMsg = (error as ValidationError).message ||
+      INVALID_ACCESS_TOKEN;
+    throw new Error(errMsg);
   }
 }
 
 export const verifyRefreshToken = (token: string) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_REEFRESH_TOKEN_SECRET as string) as IVerifyPayload;
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_TOKEN_SECRET as string) as IVerifyPayload;
     return decoded
-  } catch (err) {
-    throw new Error(INVALID_REFRESH_TOKEN);
+  } catch (error) {
+    const errMsg = (error as ValidationError).message ||
+      INVALID_REFRESH_TOKEN;
+    throw new Error(errMsg);
   }
 }

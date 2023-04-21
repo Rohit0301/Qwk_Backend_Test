@@ -5,7 +5,7 @@ import { registrationValidation } from "../../utils/registrationValidation";
 import { createUserSession, generateTokens, setCookies } from "./common";
 import { Context } from "../../types/Context";
 import { PrismaClient } from "@prisma/client";
-import { EMAIL_ALREADY_PRESENT, SIGNUP_FAILED } from "../../constants/auth";
+import { EMAIL_ALREADY_PRESENT, SIGNUP_FAILED, USER_EMAIL_NOT_FOUND } from "../../constants/auth";
 export const createAccount: FieldResolver<
   "Mutation",
   "createAccount"
@@ -20,15 +20,15 @@ export const createAccount: FieldResolver<
     };
     const newUser = await createNewUser({ user, db })
     const session = await createUserSession(newUser, db);
-    const tokens  = await generateTokens( { user_id: newUser.id, session_id: session.id })
+    const tokens = await generateTokens({ user_id: newUser.id, session_id: session.id })
     setCookies({ tokens: tokens, res })
     return {
       tokens: tokens,
       user_id: newUser.id
     };
-  } catch (err) {
+  } catch (error) {
     const errMsg =
-      (err as ValidationError).message || SIGNUP_FAILED;
+      (error as ValidationError).message || SIGNUP_FAILED;
     return {
       error: errMsg,
     };
@@ -36,16 +36,25 @@ export const createAccount: FieldResolver<
 };
 
 const checkUserExists = async ({ db, credentials }: { db: PrismaClient, credentials: { email: string } }) => {
-  const existingUser = await db.user.findFirst({
-    where: {
-      email: credentials.email,
-    },
-  });
-  if (existingUser !== null) {
-    throw new Error(EMAIL_ALREADY_PRESENT);
+
+  try {
+    const existingUser = await db.user.findFirst({
+      where: {
+        email: credentials.email,
+      },
+    });
+    if (existingUser !== null) {
+      throw new Error(EMAIL_ALREADY_PRESENT);
+    }
+
+    return existingUser;
+  }
+  catch (error) {
+    const errMsg =
+      (error as ValidationError).message || USER_EMAIL_NOT_FOUND;
+    throw new Error(errMsg)
   }
 
-  return existingUser;
 }
 
 const createNewUser = async ({ user, db }: { user: { email: string, password: string }, db: PrismaClient }) => {

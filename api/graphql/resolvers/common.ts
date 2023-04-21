@@ -2,20 +2,26 @@ import { PrismaClient } from "@prisma/client";
 import { IRequest } from "../../types/Context";
 import nookies from "nookies";
 import { createAccessToken, createRefreshToken } from "../../utils/token";
-import { INVALID_SESSION, SESSION_ERROR } from "../../constants/auth";
+import { INVALID_EMAIL_OR_TOKEN, INVALID_SESSION, SESSION_ERROR, SOMETHING_WENT_WRONG, USER_ID_NOT_FOUND } from "../../constants/auth";
+import { ValidationError } from "apollo-server";
+import { ITokens } from "../../types/auth";
 
-interface ITokens{
-    accessToken: String;
-    refreshToken: String
-}
 
 export const createUserSession = async (user: { id: string }, db: PrismaClient) => {
-    const session = await db.session.create({
-        data: {
-            user_id: user.id
-        }
-    })
-    return session;
+    try {
+        const session = await db.session.create({
+            data: {
+                user_id: user.id
+            }
+        })
+        return session;
+    }
+    catch (error) {
+        const errMsg = (error as ValidationError).message ||
+            SOMETHING_WENT_WRONG;
+        throw new Error(errMsg)
+    }
+
 }
 
 export const removeUserSession = async ({ session_id, db }: { session_id: string; db: PrismaClient }) => {
@@ -26,8 +32,10 @@ export const removeUserSession = async ({ session_id, db }: { session_id: string
             }
         })
     }
-    catch (err) {
-        throw new Error(INVALID_SESSION);
+    catch (error) {
+        const errMsg = (error as ValidationError).message ||
+            INVALID_SESSION;
+        throw new Error(errMsg);
     }
 }
 
@@ -47,8 +55,10 @@ export const checkUserSession = async ({ session_id, user_id, db }: {
             throw new Error(INVALID_SESSION);
         }
     }
-    catch (err) {
-        throw new Error(SESSION_ERROR)
+    catch (error) {
+        const errMsg = (error as ValidationError).message ||
+            SESSION_ERROR;
+        throw new Error(errMsg)
     }
 }
 
@@ -66,15 +76,39 @@ export const setCookies = ({ tokens, res }: { tokens: ITokens; res: Response }) 
     });
 }
 
-export const generateTokens = async(payload: { user_id: string, session_id: string }) => {
+export const generateTokens = async (payload: { user_id: string, session_id: string }) => {
     const refreshToken = await createRefreshToken(
         payload, null);
-      const accessToken = await createAccessToken(
+    const accessToken = await createAccessToken(
         payload, null
-      );
-      const tokens = {
+    );
+    const tokens = {
         refreshToken,
         accessToken
-      }
-      return tokens
+    }
+    return tokens
 }
+
+export const checkUserExistByID = async (
+    user_id: string,
+    db: PrismaClient
+) => {
+    try {
+        const existingUser = await db.user.findUnique({
+            where: {
+                id: user_id,
+            },
+        });
+
+        if (!existingUser) {
+            throw new Error(USER_ID_NOT_FOUND)
+        }
+        return existingUser;
+    }
+    catch (error) {
+        const errMsg = (error as ValidationError).message ||
+            USER_ID_NOT_FOUND;
+        throw new Error(errMsg)
+    }
+
+};

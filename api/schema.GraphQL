@@ -55,6 +55,7 @@ type user {
   email: String
   first_name: String
   gender: String
+  id: String
 }
 
 input userCredentials {
@@ -64,7 +65,6 @@ input userCredentials {
 
 input userData {
   city: String
-  email: String!
   first_name: String
   gender: String
 }

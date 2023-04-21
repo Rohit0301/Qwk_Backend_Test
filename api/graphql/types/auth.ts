@@ -113,6 +113,7 @@ const UpdateUserResponse = objectType({
 const UserType = objectType({
   name: "user",
   definition: t => {
+    t.string("id")
     t.string("email");
     t.string("first_name")
     t.string("city");
@@ -154,7 +155,6 @@ const UserData = inputObjectType({
     t.string("city");
     t.string("first_name");
     t.string("gender");
-    t.nonNull.string("email");
   }
 })
 

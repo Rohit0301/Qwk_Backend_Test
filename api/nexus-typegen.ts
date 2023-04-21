@@ -23,7 +23,6 @@ export interface NexusGenInputs {
   }
   userData: { // input type
     city?: string | null; // String
-    email: string; // String!
     first_name?: string | null; // String
     gender?: string | null; // String
   }
@@ -75,6 +74,7 @@ export interface NexusGenObjects {
     email?: string | null; // String
     first_name?: string | null; // String
     gender?: string | null; // String
+    id?: string | null; // String
   }
 }
 
@@ -130,6 +130,7 @@ export interface NexusGenFieldTypes {
     email: string | null; // String
     first_name: string | null; // String
     gender: string | null; // String
+    id: string | null; // String
   }
 }
 
@@ -175,6 +176,7 @@ export interface NexusGenFieldTypeNames {
     email: 'String'
     first_name: 'String'
     gender: 'String'
+    id: 'String'
   }
 }
 

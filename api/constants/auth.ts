@@ -11,6 +11,7 @@ export const USER_UPDATE_SUCCESSFULL = "User updated successfully";
 
 export const SOMETHING_WENT_WRONG = "Something went wrong!";
 export const USER_EMAIL_NOT_FOUND = "User not found with this email id!";
+export const USER_ID_NOT_FOUND = "User not found with this id!";
 export const INVALID_EMAIL_OR_TOKEN = "Invalid token or email!";
 export const INVALID_ACCESS_TOKEN = "Invalid access token!";
 export const INVALID_REFRESH_TOKEN = "Invalid refresh token!";

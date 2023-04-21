@@ -4,7 +4,7 @@ import { FieldResolver } from "nexus";
 import { ValidationError } from "apollo-server";
 import { createUserSession, generateTokens, setCookies } from "./common";
 import { Context } from "../../types/Context";
-import { INCORRECT_CREDENTIALS, LOGIN_FAILED } from "../../constants/auth";
+import { INCORRECT_CREDENTIALS, LOGIN_FAILED, USER_EMAIL_NOT_FOUND } from "../../constants/auth";
 
 export const login: FieldResolver<
     "Mutation",
@@ -13,10 +13,10 @@ export const login: FieldResolver<
     try {
         const existingUser = await getExistingUser(credentials, db);
         const session = await createUserSession(existingUser, db);
-        const tokens  = await generateTokens( { user_id: existingUser.id, session_id: session.id })
+        const tokens = await generateTokens({ user_id: existingUser.id, session_id: session.id })
         setCookies({ tokens: tokens, res })
-        console.log("Login successfull: ", tokens); 
-        return {    
+        console.log("Login successfull: ", tokens);
+        return {
             tokens: tokens,
             user_id: existingUser.id,
         };
@@ -37,23 +37,30 @@ const getExistingUser = async (
     },
     db: PrismaClient
 ) => {
-    const existingUser = await db.user.findFirst({
-        where: {
-            email: credentials.email,
-        },
-        select: {
-            password: true,
-            id: true
-        },
-    });
-    const passwordsMatch = await compare(
-        credentials.password,
-        (existingUser?.password as string) || ""
-    );
+    try {
+        const existingUser = await db.user.findFirst({
+            where: {
+                email: credentials.email,
+            },
+            select: {
+                password: true,
+                id: true
+            },
+        });
+        const passwordsMatch = await compare(
+            credentials.password,
+            (existingUser?.password as string) || ""
+        );
 
-    if (!existingUser || !passwordsMatch) {
-        throw new Error(INCORRECT_CREDENTIALS);
+        if (!existingUser || !passwordsMatch) {
+            throw new Error(INCORRECT_CREDENTIALS);
+        }
+
+        return existingUser;
     }
-
-    return existingUser;
+    catch (error) {
+        const errMsg = (error as ValidationError).message ||
+            USER_EMAIL_NOT_FOUND;
+        throw new Error(errMsg);
+    }
 };
